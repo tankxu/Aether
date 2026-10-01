@@ -36,3 +36,11 @@ DEVELOPMENT_TEAM = XXXXXXXXXX
 
 - 广告规则列表在运行时从各自官方地址下载，版权归原作者所有，仓库里只有一份自己写的少量内置规则（`Aether/AdBlock/aether-builtin.txt`）。
 - 拦截通用链接（禁止跳转 App）用的是 WebKit 未公开的导航策略取值，自用没问题，上架 App Store 前需要评估。
+
+## 许可证
+
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans)（署名-非商业性使用-相同方式共享），全文见 [LICENSE](LICENSE)：
+
+- 可以自由使用、修改、分发，但需署名
+- **不得用于商业目的**
+- 修改后再发布，必须沿用同一许可证
