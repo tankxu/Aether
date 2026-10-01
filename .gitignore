@@ -1,0 +1,6 @@
+build/
+.DS_Store
+# XcodeGen 生成，以 project.yml 为准
+*.xcodeproj/
+# 本机签名配置
+Config/Local.xcconfig

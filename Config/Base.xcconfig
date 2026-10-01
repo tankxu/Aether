@@ -1,0 +1,2 @@
+// 签名团队等本机配置放在 Config/Local.xcconfig（不进仓库），没有这个文件也能编译模拟器版本
+#include? "Local.xcconfig"

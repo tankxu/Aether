@@ -1,0 +1,133 @@
+[Adblock Plus 2.0]
+! Title: Aether 内置规则
+! 订阅规则下载完成前的兜底列表，一直生效。
+
+! Aether 内置广告域名表
+! 一行一个域名（含其子域名）。加 " $third-party" 表示只在第三方加载时拦截
+! （该域名本身也是正常网站，直接访问不受影响）。
+! 改动后 App 启动时会自动重新编译。
+
+! --- Google 广告
+||doubleclick.net^
+||googlesyndication.com^
+||googleadservices.com^
+||googletagservices.com^
+||adservice.google.com^
+||2mdn.net^
+||pagead2.googlesyndication.com^
+
+! --- 国际程序化广告 / 原生广告
+||adnxs.com^
+||adsrvr.org^
+||advertising.com^
+||amazon-adsystem.com^
+||adform.net^
+||adroll.com^
+||bidswitch.net^
+||casalemedia.com^
+||contextweb.com^
+||criteo.com^
+||criteo.net^
+||indexww.com^
+||lijit.com^
+||media.net^$third-party
+||moatads.com^
+||openx.net^
+||outbrain.com^$third-party
+||pubmatic.com^
+||rubiconproject.com^
+||serving-sys.com^
+||sharethrough.com^
+||smartadserver.com^
+||sovrn.com^
+||taboola.com^$third-party
+||teads.tv^
+||yieldmo.com^
+||33across.com^
+||flashtalking.com^
+||mgid.com^$third-party
+||revcontent.com^
+||zedo.com^
+||adcolony.com^
+||applovin.com^$third-party
+||unityads.unity3d.com^
+||inmobi.com^$third-party
+
+! --- 弹窗 / 跳转 / 成人站常见广告网络
+||popads.net^
+||popcash.net^
+||propellerads.com^
+||propellerclick.com^
+||onclickads.net^
+||exoclick.com^
+||exosrv.com^
+||exdynsrv.com^
+||realsrv.com^
+||juicyads.com^
+||trafficjunky.net^
+||trafficstars.com^
+||tsyndicate.com^
+||adsterra.com^
+||hilltopads.net^
+||clickadu.com^
+||a-ads.com^
+||adcash.com^
+||plugrush.com^
+||ero-advertising.com^
+||adspyglass.com^
+||popmyads.com^
+
+! --- 国内广告联盟
+||pos.baidu.com^
+||cpro.baidu.com^
+||cbjs.baidu.com^
+||eiv.baidu.com^
+||dup.baidustatic.com^
+||mobads.baidu.com^
+||mobads-logs.baidu.com^
+||gdt.qq.com^
+||e.qq.com^$third-party
+||pgdt.gtimg.cn^
+||qzs.gdtimg.com^
+||adsmind.gdtimg.com^
+||tanx.com^
+||atanx.alicdn.com^
+||alimama.com^$third-party
+||mmstat.com^$third-party
+||pangolin-sdk-toutiao.com^
+||pangle.io^
+||ad.toutiao.com^$third-party
+||adx.ads.oppomobile.com^
+||ad.xiaomi.com^
+||admaster.com.cn^
+||miaozhen.com^
+||allyes.com^
+||mediav.com^
+||lianmeng.360.cn^
+||s.360.cn^$third-party
+||adsame.com^
+||ipinyou.com^
+
+! --- 元素隐藏
+##ins.adsbygoogle
+##.adsbygoogle
+##div[id^="google_ads_iframe"]
+##div[id^="div-gpt-ad"]
+##iframe[src*="doubleclick.net"]
+##iframe[src*="googlesyndication.com"]
+##a[href*="doubleclick.net/"]
+##.taboola-widget
+##div[id^="taboola-"]
+##.OUTBRAIN
+##.ob-widget
+##div[id^="mgid_"]
+##.trc_rbox_container
+##div[id^="cproIframe"]
+##iframe[src*="pos.baidu.com"]
+##iframe[src*="cpro.baidu.com"]
+##.adsbox
+##.ad-banner
+##.ad-slot
+##.ad_slot
+##.adslot
+##.advertisement
