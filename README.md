@@ -39,8 +39,10 @@ DEVELOPMENT_TEAM = XXXXXXXXXX
 
 ## 许可证
 
-[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans)（署名-非商业性使用-相同方式共享），全文见 [LICENSE](LICENSE)：
+[GNU AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html)，全文见 [LICENSE](LICENSE)：
 
-- 可以自由使用、修改、分发，但需署名
-- **不得用于商业目的**
-- 修改后再发布，必须沿用同一许可证
+- 可以自由使用、修改、分发，包括商用
+- 分发修改后的版本（包括以网络服务形式提供）时，必须以 AGPL-3.0 公开完整源码
+- 必须保留原作者的版权和许可证声明
+
+Copyright (C) 2026 Tank Xu
