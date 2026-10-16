@@ -13,7 +13,7 @@ enum SearchEngine: String, CaseIterable, Identifiable {
         switch self {
         case .google: "Google"
         case .bing: "Bing"
-        case .baidu: "百度"
+        case .baidu: L("百度")
         case .duckDuckGo: "DuckDuckGo"
         }
     }
@@ -43,6 +43,7 @@ enum SettingsKey {
     static let autoRotate = "autoRotate"
     static let alwaysShowProgress = "alwaysShowProgress"
     static let railSide = "playerRailSide"
+    static let autoPiP = "autoPictureInPicture"
     static let handleSide = "handleSide"
     static let handleY = "handleY"
 }
@@ -57,6 +58,7 @@ enum Settings {
             SettingsKey.autoRotate: true,
             SettingsKey.alwaysShowProgress: false,
             SettingsKey.railSide: Side.right.rawValue,
+            SettingsKey.autoPiP: true,
             SettingsKey.handleSide: Side.right.rawValue,
             SettingsKey.handleY: 0.72,
         ])
@@ -72,6 +74,12 @@ enum Settings {
     }
 
     static var autoRotate: Bool { defaults.bool(forKey: SettingsKey.autoRotate) }
+
+    /// 全屏播放时离开 App 自动进入画中画
+    static var autoPiP: Bool {
+        get { defaults.bool(forKey: SettingsKey.autoPiP) }
+        set { defaults.set(newValue, forKey: SettingsKey.autoPiP) }
+    }
 
     static var alwaysShowProgress: Bool {
         get { defaults.bool(forKey: SettingsKey.alwaysShowProgress) }

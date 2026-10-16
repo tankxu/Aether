@@ -93,9 +93,9 @@ struct HistoryView: View {
         var result: [(String, [HistoryStore.Entry])] = []
         for entry in filtered {
             let day: String
-            if calendar.isDateInToday(entry.date) { day = "今天" }
-            else if calendar.isDateInYesterday(entry.date) { day = "昨天" }
-            else { day = entry.date.formatted(.dateTime.month().day().weekday()) }
+            if calendar.isDateInToday(entry.date) { day = L("今天") }
+            else if calendar.isDateInYesterday(entry.date) { day = L("昨天") }
+            else { day = entry.date.formatted(.dateTime.month().day().weekday().locale(AppLanguage.locale)) }
             if result.last?.0 == day { result[result.count - 1].1.append(entry) } else { result.append((day, [entry])) }
         }
         return result
@@ -105,7 +105,7 @@ struct HistoryView: View {
         NavigationStack {
             List {
                 if store.entries.isEmpty {
-                    ContentUnavailableView("没有浏览记录", systemImage: "clock", description: Text("无痕标签页不会留下记录"))
+                    ContentUnavailableView(L("没有浏览记录"), systemImage: "clock", description: Text(L("无痕标签页不会留下记录")))
                         .listRowBackground(Color.clear)
                 }
                 ForEach(sections, id: \.0) { day, items in
@@ -119,28 +119,28 @@ struct HistoryView: View {
                             }
                             .buttonStyle(.plain)
                             .contextMenu {
-                                Button("拷贝链接", systemImage: "doc.on.doc") { UIPasteboard.general.string = entry.url }
+                                Button(L("拷贝链接"), systemImage: "doc.on.doc") { UIPasteboard.general.string = entry.url }
                             }
                         }
                         .onDelete { offsets in store.remove(Set(offsets.map { items[$0].id })) }
                     }
                 }
             }
-            .searchable(text: $query, prompt: "搜索历史记录")
-            .navigationTitle("历史记录")
+            .searchable(text: $query, prompt: L("搜索历史记录"))
+            .navigationTitle(L("历史记录"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     // 弹窗挂在按钮上：iOS 26 的确认弹窗是气泡，箭头会指向这个按钮
-                    Button("清除") { confirmClear = true }
+                    Button(L("清除")) { confirmClear = true }
                         .disabled(store.entries.isEmpty)
-                        .confirmationDialog("清除历史记录", isPresented: $confirmClear, titleVisibility: .visible) {
-                            Button("最近一小时", role: .destructive) { store.clear(since: Date().addingTimeInterval(-3600)) }
-                            Button("今天", role: .destructive) { store.clear(since: Calendar.current.startOfDay(for: Date())) }
-                            Button("全部", role: .destructive) { store.clear() }
+                        .confirmationDialog(L("清除历史记录"), isPresented: $confirmClear, titleVisibility: .visible) {
+                            Button(L("最近一小时"), role: .destructive) { store.clear(since: Date().addingTimeInterval(-3600)) }
+                            Button(L("今天"), role: .destructive) { store.clear(since: Calendar.current.startOfDay(for: Date())) }
+                            Button(L("全部"), role: .destructive) { store.clear() }
                         }
                 }
-                ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) { Button(L("完成")) { dismiss() } }
             }
         }
     }

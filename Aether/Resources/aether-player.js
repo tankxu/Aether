@@ -10,6 +10,7 @@
   if (!handler) return;
 
   const post = (m) => { try { handler.postMessage(m); } catch (_) {} };
+  const log = (msg) => post({ type: 'log', msg: String(msg) });
   const isTop = window.top === window;
   const MAX_Z = '2147483647';
 
@@ -34,6 +35,9 @@
     setPresentationMode: VideoProto.webkitSetPresentationMode,
     presentationMode: presentationModeDesc && presentationModeDesc.get,
     play: MediaProto.play,
+    exitFullscreen: DocProto.exitFullscreen || DocProto.webkitExitFullscreen,
+    fullscreenElement: (Object.getOwnPropertyDescriptor(DocProto, 'fullscreenElement') ||
+      Object.getOwnPropertyDescriptor(DocProto, 'webkitFullscreenElement') || {}).get,
   };
 
   // ---------------------------------------------------------------- 样式
@@ -151,6 +155,7 @@
       t: num(t), d: num(d), live, ss: num(ss), se: num(se), buf: num(buf),
       paused: !!v.paused, ended: !!v.ended, rate: num(v.playbackRate) || 1,
       w: num(v.videoWidth), h: num(v.videoHeight),
+      pip: supportsPiP(v), air: airplayAvailable, wireless: !!v.webkitCurrentPlaybackTargetIsWireless,
       text: trackList(v.textTracks, isSubtitle, (x) => x.mode === 'showing'),
       audio: trackList(v.audioTracks, () => true, (x) => !!x.enabled),
     };
@@ -176,12 +181,162 @@
     'ratechange', 'durationchange', 'loadedmetadata', 'resize', 'ended', 'emptied'];
   const TRACK_EVENTS = ['addtrack', 'removetrack', 'change'];
 
+  // ---------------------------------------------------------------- 画中画 / AirPlay
+
+  let airplayAvailable = false;
+  function onAirplayAvailability(e) {
+    airplayAvailable = e.availability === 'available';
+    report('state');
+  }
+
+  function supportsPiP(v) {
+    if (!native.setPresentationMode) return false;
+    try { return typeof v.webkitSupportsPresentationMode !== 'function' || v.webkitSupportsPresentationMode('picture-in-picture'); }
+    catch (_) { return false; }
+  }
+
+  // 从播放器进入画中画的视频：画中画结束（点“还原”或关闭）时回到 Aether 全屏
+  let pipVideo = null;
+  function onPresentationModeChanged(e) {
+    const v = e.target;
+    if (v !== pipVideo) return;
+    const mode = native.presentationMode ? native.presentationMode.call(v) : 'inline';
+    log('presentationmodechanged ' + mode + ' hidden=' + document.hidden);
+    if (mode === 'picture-in-picture') return;
+    pipVideo = null;
+    v.removeEventListener('webkitpresentationmodechanged', onPresentationModeChanged);
+    if (mode === 'inline' && v.isConnected) enter(v, null, v, 'video');
+  }
+
+  function startPiP(v) {
+    try { v.disablePictureInPicture = false; v.removeAttribute('disablepictureinpicture'); } catch (_) {}
+    pipVideo = v;
+    v.addEventListener('webkitpresentationmodechanged', onPresentationModeChanged);
+    log('startPiP paused=' + v.paused + ' ready=' + v.readyState + ' hidden=' + document.hidden + ' src=' + (v.currentSrc || '').slice(0, 60));
+    teardown(false);   // 先还原页面布局（原生层随之关闭），再交给系统画中画
+    try { native.setPresentationMode.call(v, 'picture-in-picture'); }
+    catch (err) { log('setPresentationMode threw ' + err); pipVideo = null; enter(v, null, v, 'video'); }
+    setTimeout(() => log('after 300ms mode=' + (native.presentationMode ? native.presentationMode.call(v) : '?')), 300);
+  }
+
+  // ---------------------------------------------------------------- WebKit 元素全屏（只为自动画中画）
+  //
+  // 系统只在“元素全屏里有正在播放的视频”时，才会在离开 App 时自动进入画中画。
+  // 所以伪全屏之外再让 WebKit 进入真正的元素全屏：画面和控制层仍然是 Aether 自己的。
+  // 全屏的是视频的容器而不是 <video> 本身——直接全屏 <video> 在 iPhone 上会变成系统播放器。
+
+  function nativeFullscreenElement() {
+    try { return native.fullscreenElement ? native.fullscreenElement.call(document) : null; } catch (_) { return null; }
+  }
+
+  // 注意：WebKit 对 YouTube 手机版有兼容处理，iPhone 上页面里拿不到 requestFullscreen，
+  // 所以 YouTube 进不了元素全屏，系统也就不会在离开 App 时自动画中画（手动画中画按钮不受影响）
+  function enterNativeFullscreen() {
+    if (!active || nativeFullscreenElement()) return;
+    const request = native.requestFullscreen || native.webkitRequestFullscreen;
+    if (!request) return;
+    const target = document.documentElement;
+    try {
+      const p = request.call(target);
+      if (p && p.then) p.then(() => log('native fullscreen ok'), (err) => log('native fullscreen failed ' + err));
+    } catch (err) { log('native fullscreen threw ' + err); }
+  }
+
+  function leaveNativeFullscreen(saved) {
+    if (!nativeFullscreenElement() || !native.exitFullscreen) return;
+    // WebKit 退出全屏时会恢复它自己记下的滚动位置，等它完成后再回到进入前的位置
+    const restoreScroll = () => { if (saved) window.scrollTo(saved.x, saved.y); };
+    try {
+      const p = native.exitFullscreen.call(document);
+      if (p && p.then) p.then(() => { restoreScroll(); setTimeout(restoreScroll, 300); }, () => {});
+    } catch (_) {}
+  }
+
+
   function bindVideo(v, on) {
     const m = on ? 'addEventListener' : 'removeEventListener';
     for (const t of MEDIA_EVENTS) v[m](t, onMediaEvent);
+    if (window.WebKitPlaybackTargetAvailabilityEvent) {
+      v[m]('webkitplaybacktargetavailabilitychanged', onAirplayAvailability);
+      v[m]('webkitcurrentplaybacktargetiswirelesschanged', onMediaEvent);
+    }
     for (const list of [v.textTracks, v.audioTracks]) {
       if (list) for (const t of TRACK_EVENTS) list[m](t, onMediaEvent);
     }
+  }
+
+  // ---------------------------------------------------------------- 只给网页的全屏事件
+  //
+  // webkitbeginfullscreen / webkitendfullscreen 只能交给网页自己的监听器：真的在 <video> 上派发，
+  // WebKit 内部的媒体控件也会收到，它把模拟的 end 当成真的退出全屏，视频图层就没了（退出后画面空白）。
+  // 所以记下网页注册的这两类监听器，退出 / 进入时按捕获 → 目标 → 冒泡的顺序直接调用。
+
+  const PAGE_ONLY_EVENTS = new Set(['webkitbeginfullscreen', 'webkitendfullscreen']);
+  const pageListeners = new WeakMap();   // target -> [{ type, fn, capture, once }]
+  const nativeAdd = EventTarget.prototype.addEventListener;
+  const nativeRemove = EventTarget.prototype.removeEventListener;
+  const captureOf = (o) => (typeof o === 'boolean' ? o : !!(o && o.capture));
+  try {
+    Object.defineProperty(EventTarget.prototype, 'addEventListener', {
+      configurable: true, writable: true,
+      value: function (type, fn, opts) {
+        if (fn && PAGE_ONLY_EVENTS.has(type)) {
+          const list = pageListeners.get(this) || [];
+          const capture = captureOf(opts);
+          if (!list.some((l) => l.type === type && l.fn === fn && l.capture === capture)) {
+            list.push({ type, fn, capture, once: !!(opts && opts.once) });
+            pageListeners.set(this, list);
+          }
+        }
+        return nativeAdd.call(this, type, fn, opts);
+      },
+    });
+    Object.defineProperty(EventTarget.prototype, 'removeEventListener', {
+      configurable: true, writable: true,
+      value: function (type, fn, opts) {
+        const list = pageListeners.get(this);
+        if (list && PAGE_ONLY_EVENTS.has(type)) {
+          const capture = captureOf(opts);
+          const i = list.findIndex((l) => l.type === type && l.fn === fn && l.capture === capture);
+          if (i >= 0) list.splice(i, 1);
+        }
+        return nativeRemove.call(this, type, fn, opts);
+      },
+    });
+  } catch (_) {}
+
+  function deliverToPage(el, type) {
+    const path = [];
+    for (let n = el; n; n = n.parentNode || (n instanceof ShadowRoot ? n.host : null)) path.push(n);
+    path.push(window);
+    const ev = new Event(type, { bubbles: true });
+    let current = null, phase = 0, stopped = false;
+    try {
+      Object.defineProperty(ev, 'target', { value: el });
+      Object.defineProperty(ev, 'srcElement', { value: el });
+      Object.defineProperty(ev, 'currentTarget', { get: () => current });
+      Object.defineProperty(ev, 'eventPhase', { get: () => phase });
+      ev.stopPropagation = () => { stopped = true; };
+      ev.stopImmediatePropagation = () => { stopped = true; };
+    } catch (_) { return; }
+    const call = (node, capture) => {
+      current = node;
+      const list = (pageListeners.get(node) || []).filter((l) => l.type === type && l.capture === capture);
+      for (const l of list) {
+        if (l.once) nativeRemove.call(node, type, l.fn, l.capture);
+        try { typeof l.fn === 'function' ? l.fn.call(node, ev) : l.fn.handleEvent(ev); } catch (err) { setTimeout(() => { throw err; }); }
+        if (l.once) { const all = pageListeners.get(node); const i = all ? all.indexOf(l) : -1; if (i >= 0) all.splice(i, 1); }
+      }
+      const handler = !capture && node['on' + type];
+      if (typeof handler === 'function') { try { handler.call(node, ev); } catch (_) {} }
+    };
+    phase = 1;
+    for (let i = path.length - 1; i > 0 && !stopped; i--) call(path[i], true);
+    phase = 2;
+    if (!stopped) { call(el, true); call(el, false); }
+    phase = 3;
+    for (let i = 1; i < path.length && !stopped; i++) call(path[i], false);
+    current = null; phase = 0;
   }
 
   // ---------------------------------------------------------------- 进入 / 退出
@@ -198,9 +353,7 @@
         for (const t of ['fullscreenchange', 'webkitfullscreenchange']) {
           target.dispatchEvent(new Event(t, { bubbles: true, composed: true }));
         }
-        if (via === 'video') {
-          el.dispatchEvent(new Event(entering ? 'webkitbeginfullscreen' : 'webkitendfullscreen', { bubbles: true }));
-        }
+        if (via === 'video') deliverToPage(el, entering ? 'webkitbeginfullscreen' : 'webkitendfullscreen');
       } finally { firing = false; }
     }, 0);
   }
@@ -214,7 +367,12 @@
     const restores = [];
     const saved = { controls: video.controls, x: window.scrollX, y: window.scrollY };
 
-    forEachAncestor(video, (a) => applyProps(a, ANCESTOR_PROPS, restores));
+    forEachAncestor(video, (a) => {
+      applyProps(a, ANCESTOR_PROPS, restores);
+      // 外层播放器容器的 overflow:hidden 仍会裁掉合成后的视频图层（YouTube 全屏时上下被切），
+      // body 例外：滚动由 html 的 overflow:hidden 锁住
+      if (a !== document.body) applyProps(a, { overflow: 'visible', clip: 'auto' }, restores);
+    });
     if (box && box !== video) {
       // 网页请求的是播放器容器：容器也铺满，以保留它自绘的字幕层
       const boxProps = Object.assign({}, TARGET_PROPS, { visibility: 'hidden', background: 'transparent' });
@@ -241,14 +399,25 @@
     const a = active;
     if (!a) return;
     active = null;
+    leaveNativeFullscreen(a.saved);
     bindVideo(a.video, false);
     runRestores(a.restores);
     a.video.controls = a.saved.controls;
     syncRootClass();
-    window.scrollTo(a.saved.x, a.saved.y);
+    restoreScrollAfterExit(a.saved);
     if (!fromNative) post({ type: 'exit' });
     if (!isTop) parent.postMessage({ __aether: 'frame-exit' }, '*');
     fireChange(a.reported, false, a.via);
+  }
+
+  // 退出后屏幕通常还要转回竖屏：页面重新排版时 WebKit 会调整滚动位置，
+  // 退出后 2 秒内每次尺寸变化都回到进入前的位置
+  function restoreScrollAfterExit(saved) {
+    const restore = () => window.scrollTo(saved.x, saved.y);
+    restore();
+    const onResize = () => { restore(); setTimeout(restore, 120); };
+    window.addEventListener('resize', onResize);
+    setTimeout(() => window.removeEventListener('resize', onResize), 2000);
   }
 
   function enterFrame(iframe) {
@@ -335,6 +504,13 @@
         for (let i = 0; list && i < list.length; i++) list[i].enabled = i === c.v;
         break;
       }
+      case 'pip':
+        if (supportsPiP(v)) startPiP(v);
+        else log('pip unsupported pipEnabled=' + document.pictureInPictureEnabled + ' disable=' + v.disablePictureInPicture);
+        return;
+      case 'airplay':
+        if (typeof v.webkitShowPlaybackTargetPicker === 'function') v.webkitShowPlaybackTargetPicker();
+        return;
       case 'exit': teardown(true); return;
     }
     report('state');
@@ -346,7 +522,7 @@
   }
 
   Object.defineProperty(window, '__aether', {
-    value: Object.freeze({ cmd, clear }), configurable: false, enumerable: false, writable: false,
+    value: Object.freeze({ cmd, clear, enterNativeFullscreen, enterMedia: () => enterMediaPage() }), configurable: false, enumerable: false, writable: false,
   });
 
   // ---------------------------------------------------------------- 接管全屏 API
@@ -369,6 +545,15 @@
     return vids.reduce((a, b) => (score(b) > score(a) ? b : a));
   }
 
+  // 和 Safari 一样：网页只能在用户刚点过 / 按过键时进入全屏。
+  // 否则 YouTube 手机版一横屏就自动请求全屏（Safari 会拒绝），我们却照单全收、直接弹出播放器。
+  const DEBUG_ENTRY = false;
+  function userInitiated() {
+    if (DEBUG_ENTRY && (location.hash.includes('aether-debug') || window.name === 'aether-debug')) return true;
+    const ua = navigator.userActivation;
+    return !ua || ua.isActive;
+  }
+
   function requestFrom(el) {
     if (el instanceof HTMLVideoElement) return enter(el, null, el, 'element');
     const v = pickVideo(el);
@@ -376,17 +561,23 @@
   }
 
   patch(ElemProto, 'requestFullscreen', function (opts) {
+    if (!userInitiated()) return Promise.reject(new TypeError('Fullscreen request requires a user gesture'));
     if (requestFrom(this)) return Promise.resolve();
     if (native.requestFullscreen) return native.requestFullscreen.call(this, opts);
     return Promise.reject(new TypeError('Fullscreen is not supported'));
   });
   for (const n of ['webkitRequestFullscreen', 'webkitRequestFullScreen']) {
     patch(ElemProto, n, function () {
+      if (!userInitiated()) return;
       if (!requestFrom(this) && native.webkitRequestFullscreen) native.webkitRequestFullscreen.call(this);
     });
   }
   for (const n of ['webkitEnterFullscreen', 'webkitEnterFullScreen']) {
-    patch(VideoProto, n, function () { enter(this, null, this, 'video'); });
+    patch(VideoProto, n, function () {
+      // Safari 在没有用户手势时抛 InvalidStateError，网页代码本来就会处理
+      if (!userInitiated()) throw new DOMException('The object is in an invalid state.', 'InvalidStateError');
+      enter(this, null, this, 'video');
+    });
   }
   for (const n of ['webkitExitFullscreen', 'webkitExitFullScreen']) {
     patch(VideoProto, n, function () {
@@ -395,9 +586,11 @@
     });
   }
   patch(VideoProto, 'webkitSetPresentationMode', function (mode) {
-    if (mode === 'fullscreen') { enter(this, null, this, 'video'); return; }
-    if (active && active.video === this) teardown(false);
-    if (mode !== 'inline' && native.setPresentationMode) native.setPresentationMode.call(this, mode);
+    if (mode === 'fullscreen') { if (userInitiated()) enter(this, null, this, 'video'); return; }
+    const wasOurs = !!active && active.video === this;
+    if (wasOurs) teardown(false);
+    // 退出伪全屏只需还原；其他情况（进入画中画、从画中画回到内联）交给 WebKit
+    if (!(wasOurs && mode === 'inline') && native.setPresentationMode) native.setPresentationMode.call(this, mode);
   });
   getter(VideoProto, 'webkitPresentationMode', function () {
     if (active && active.video === this) return 'fullscreen';
@@ -418,7 +611,7 @@
 
   // 原生内联控件上的全屏按钮会绕过 JS：系统播放器一出现就收回来改走伪全屏
   document.addEventListener('webkitbeginfullscreen', (e) => {
-    if (firing) return;
+    if (firing || !e.isTrusted) return;
     const v = e.target;
     if (!(v instanceof HTMLVideoElement)) return;
     setTimeout(() => {
@@ -426,6 +619,25 @@
       enter(v, null, v, 'video');
     }, 0);
   }, true);
+
+  // ---------------------------------------------------------------- 直接打开的视频文件
+
+  // 直接打开 mp4 等视频时，原生层用 Aether 的页面（<meta name="aether-media" content="video">）代替
+  // WebKit 的媒体文档；页面一加载就进入 Aether 播放器（浏览器自己的行为，不需要用户手势）
+  let enterMediaPage = () => {};
+  if (isTop) {
+    const takeOver = () => {
+      const meta = document.querySelector('meta[name="aether-media"]');
+      const v = meta && meta.content === 'video' && document.querySelector('video');
+      if (!v || active) return;
+      enter(v, null, v, 'video');
+      const p = native.play.call(v);
+      if (p && p.catch) p.catch(() => {});   // 有声视频自动播放可能被拦，停在暂停状态，用控制列播放
+    };
+    enterMediaPage = takeOver;
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', takeOver, { once: true });
+    else takeOver();
+  }
 
   // ---------------------------------------------------------------- 强制内联播放
 

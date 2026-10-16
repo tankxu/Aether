@@ -69,21 +69,21 @@ final class PickerBarView: UIView {
     override init(frame: CGRect) {
         var confirm: UIButton.Configuration
         if #available(iOS 26.0, *) { confirm = .prominentGlass() } else { confirm = .filled() }
-        confirm.title = "屏蔽"
+        confirm.title = L("屏蔽")
         confirm.cornerStyle = .capsule
         confirm.baseBackgroundColor = .systemRed
         confirmButton = UIButton(configuration: confirm)
         super.init(frame: frame)
 
-        titleLabel.text = "轻点要屏蔽的内容"
+        titleLabel.text = L("轻点要屏蔽的内容")
         titleLabel.font = .systemFont(ofSize: 15, weight: .semibold)
         selectorLabel.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
         selectorLabel.textColor = .secondaryLabel
         selectorLabel.lineBreakMode = .byTruncatingMiddle
-        selectorLabel.text = "选中后可以扩大或缩小范围"
+        selectorLabel.text = L("选中后可以扩大或缩小范围")
 
-        let expand = Self.toolButton("arrow.up.left.and.arrow.down.right", "扩大")
-        let shrink = Self.toolButton("arrow.down.right.and.arrow.up.left", "缩小")
+        let expand = Self.toolButton("arrow.up.left.and.arrow.down.right", L("扩大"))
+        let shrink = Self.toolButton("arrow.down.right.and.arrow.up.left", L("缩小"))
         let cancel = Glass.circleButton("xmark", size: 44)
         expand.addAction(UIAction { [weak self] _ in self?.onExpand?() }, for: .primaryActionTriggered)
         shrink.addAction(UIAction { [weak self] _ in self?.onShrink?() }, for: .primaryActionTriggered)
@@ -126,7 +126,7 @@ final class PickerBarView: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     func update(selector: String, count: Int) {
-        titleLabel.text = count > 1 ? "已选中 \(count) 处" : "已选中 1 处"
+        titleLabel.text = L("已选中 %d 处", max(count, 1))
         selectorLabel.text = selector
         confirmButton.isEnabled = true
     }

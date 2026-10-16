@@ -72,7 +72,7 @@ final class FaviconStore: ObservableObject {
     }
 
     /// apple-touch-icon（通常 180px）> 尺寸最大的 icon > 其他 icon > /favicon.ico；跳过 SVG
-    private static func rank(_ links: [[String: Any]], page: URL) -> [URL] {
+    static func rank(_ links: [[String: Any]], page: URL) -> [URL] {
         func size(_ s: String) -> Int {
             s.split(separator: " ").compactMap { Int($0.lowercased().split(separator: "x").first ?? "") }.max() ?? 0
         }

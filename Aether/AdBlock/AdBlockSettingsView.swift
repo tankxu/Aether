@@ -7,7 +7,7 @@ struct AdBlockSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Toggle("广告过滤", isOn: Binding(
+                Toggle(L("广告过滤"), isOn: Binding(
                     get: { blocker.isEnabled },
                     set: { blocker.setEnabled($0); onChange() }
                 ))
@@ -25,7 +25,7 @@ struct AdBlockSettingsView: View {
                             Text(sub.name)
                             Text(sub.detail).font(.caption).foregroundStyle(.secondary)
                             if let date = sub.lastFetched {
-                                Text("更新于 \(date.formatted(.relative(presentation: .named)))")
+                                Text(L("更新于 %@", date.formatted(.relative(presentation: .named).locale(AppLanguage.locale))))
                                     .font(.caption2).foregroundStyle(.tertiary)
                             }
                         }
@@ -35,33 +35,33 @@ struct AdBlockSettingsView: View {
                     blocker.updateNow()
                 } label: {
                     HStack {
-                        Text("立即更新规则")
+                        Text(L("立即更新规则"))
                         Spacer()
                         if blocker.status == .downloading || blocker.status == .compiling { ProgressView() }
                     }
                 }
                 .disabled(blocker.status == .downloading || blocker.status == .compiling)
             } header: {
-                Text("规则订阅")
+                Text(L("规则订阅"))
             } footer: {
-                Text("规则每 4 天自动更新一次。只下载规则文本，在本机转换成 Safari 的内容拦截格式。")
+                Text(L("规则每 4 天自动更新一次。只下载规则文本，在本机转换成 Safari 的内容拦截格式。"))
             }
 
             Section {
                 if blocker.whitelist.isEmpty {
-                    Text("没有停用过滤的网站").foregroundStyle(.secondary)
+                    Text(L("没有停用过滤的网站")).foregroundStyle(.secondary)
                 }
                 ForEach(blocker.whitelist, id: \.self) { Text($0) }
                     .onDelete { blocker.removeWhitelist(at: $0); onChange() }
             } header: {
-                Text("已停用过滤的网站")
+                Text(L("已停用过滤的网站"))
             } footer: {
-                Text("在工具栏菜单里选“在此网站停用广告过滤”添加。左滑删除。")
+                Text(L("在网页的 ⋯ 菜单里关闭“广告过滤”即可对该网站停用。左滑删除。"))
             }
 
             Section {
                 if blocker.userRules.isEmpty {
-                    Text("还没有手动屏蔽的元素").foregroundStyle(.secondary)
+                    Text(L("还没有手动屏蔽的元素")).foregroundStyle(.secondary)
                 }
                 ForEach(blocker.userRules) { rule in
                     VStack(alignment: .leading, spacing: 2) {
@@ -71,23 +71,23 @@ struct AdBlockSettingsView: View {
                 }
                 .onDelete { blocker.removeUserRules(at: $0); onChange() }
             } header: {
-                Text("我屏蔽的元素")
+                Text(L("我屏蔽的元素"))
             } footer: {
-                Text("在工具栏菜单里选“屏蔽页面元素”，点选页面上漏网的广告即可。")
+                Text(L("在工具栏菜单里选“屏蔽页面元素”，点选页面上漏网的广告即可。"))
             }
         }
-        .navigationTitle("广告过滤")
+        .navigationTitle(L("广告过滤"))
         .navigationBarTitleDisplayMode(.inline)
     }
 
     private var statusText: String {
         switch blocker.status {
-        case .downloading: return "正在下载规则…"
-        case .compiling: return "正在编译规则…"
+        case .downloading: return L("正在下载规则…")
+        case .compiling: return L("正在编译规则…")
         case .failed(let message): return message
         case .idle:
-            guard blocker.ruleCount > 0 else { return "正在准备规则…" }
-            return "已启用 \(blocker.ruleCount.formatted()) 条规则"
+            guard blocker.ruleCount > 0 else { return L("正在准备规则…") }
+            return L("已启用 %@ 条规则", blocker.ruleCount.formatted(.number.locale(AppLanguage.locale)))
         }
     }
 }

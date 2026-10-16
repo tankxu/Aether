@@ -19,7 +19,11 @@ final class WebEnvironment {
     init(scriptHandler: WKScriptMessageHandler) {
         self.scriptHandler = scriptHandler
         if let url = Bundle.main.url(forResource: "aether-player", withExtension: "js"),
-           let source = try? String(contentsOf: url, encoding: .utf8) {
+           var source = try? String(contentsOf: url, encoding: .utf8) {
+            #if DEBUG
+            // 调试截图用：允许不经用户手势直接进入播放器（Release 版没有这个入口）
+            source = source.replacingOccurrences(of: "const DEBUG_ENTRY = false;", with: "const DEBUG_ENTRY = true;")
+            #endif
             playerScript = WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: false, in: .page)
         } else {
             playerScript = nil
@@ -46,6 +50,8 @@ final class WebEnvironment {
         config.websiteDataStore = incognito ? currentIncognitoStore() : .default()
         config.allowsInlineMediaPlayback = true
         config.allowsPictureInPictureMediaPlayback = true
+        // 元素全屏只由 aether-player.js 在接管后调用，为了让系统能在离开 App 时自动画中画
+        config.preferences.isElementFullscreenEnabled = true
         config.mediaTypesRequiringUserActionForPlayback = .audio
         config.defaultWebpagePreferences.preferredContentMode = .mobile
         config.applicationNameForUserAgent = Self.safariUserAgentSuffix

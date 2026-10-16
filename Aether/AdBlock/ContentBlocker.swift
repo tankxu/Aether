@@ -225,7 +225,7 @@ final class ContentBlocker: ObservableObject {
             }
         }
         saveSubscriptions()
-        status = failures.isEmpty ? .idle : .failed("部分规则下载失败：\(failures[0])")
+        status = failures.isEmpty ? .idle : .failed(L("部分规则下载失败：%@", failures[0]))
         if changed { await rebuild() }
     }
 

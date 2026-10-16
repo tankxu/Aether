@@ -10,9 +10,12 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         // 地区与语言要在创建任何 WKWebView 之前设好
         RegionSettings.applyAtLaunch()
         Settings.registerDefaults()
+        DebugLog.trim()
         // 网页视频不受静音键影响，和 Safari 一致
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
         ContentBlocker.shared.prepare()
+        // 图标规则更新后给已有收藏重新抓一次图标
+        AppIconStore.shared.refreshAllIfNeeded()
         return true
     }
 
@@ -46,6 +49,9 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         if let i = args.firstIndex(of: "-AetherOpenURL"), i + 1 < args.count, let url = URL(string: args[i + 1]) {
             browser.load(url)
         }
+        if args.contains("-AetherLandscape") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { browser.debugShow("landscape") }
+        }
         if let i = args.firstIndex(of: "-AetherDebugUI"), i + 1 < args.count {
             let what = args[i + 1]
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) { browser.debugShow(what) }
@@ -54,14 +60,17 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func sceneWillResignActive(_ scene: UIScene) {
+        browser?.sceneWillResignActive()
         browser?.setPrivacyCover(true)
     }
 
     func sceneDidBecomeActive(_ scene: UIScene) {
         browser?.setPrivacyCover(false)
+        browser?.sceneDidBecomeActive()
     }
 
     func sceneDidEnterBackground(_ scene: UIScene) {
+        browser?.sceneDidEnterBackground()
         browser?.saveSession()
     }
 }

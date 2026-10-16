@@ -20,21 +20,10 @@ final class ProgressBarView: UIView {
     private let bufferedBar = UIView()
     private let playedBar = UIView()
     private let thinLine = UIView()      // 控件隐藏时“常显进度条”用的细线
-    private let playhead: UIView = {
-        // 竖线也是通透的玻璃，带一点白色调
-        if #available(iOS 26.0, *) {
-            let glass = UIGlassEffect(style: .clear)
-            glass.tintColor = UIColor(white: 1, alpha: 0.35)
-            let v = UIVisualEffectView(effect: glass)
-            v.cornerConfiguration = .capsule()
-            return v
-        }
-        let v = UIView()
-        v.backgroundColor = UIColor.white.withAlphaComponent(0.5)
-        v.layer.borderColor = UIColor.white.withAlphaComponent(0.85).cgColor
-        v.layer.borderWidth = 0.5
-        return v
-    }()
+    /// 进度点：轨道上的半透明小圆点
+    private let knob = UIView()
+    /// 进度点上方悬浮、缓慢自转的小行星
+    private let planet = PlanetMarkView()
     private let timeLabel = UILabel()
 
     private var played: Double = 0
@@ -60,13 +49,20 @@ final class ProgressBarView: UIView {
         playedBar.layer.shadowOpacity = 0.12
         playedBar.layer.shadowRadius = 2
         playedBar.layer.shadowOffset = .zero
+        knob.backgroundColor = UIColor.white.withAlphaComponent(0.75)
+        knob.layer.borderColor = UIColor.white.withAlphaComponent(0.95).cgColor
+        knob.layer.borderWidth = 0.5
+        knob.layer.shadowColor = UIColor(red: 0.6, green: 0.5, blue: 1, alpha: 1).cgColor
+        knob.layer.shadowOpacity = 0.8
+        knob.layer.shadowRadius = 4
+        knob.layer.shadowOffset = .zero
         timeLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .semibold)
         timeLabel.textColor = .white
         timeLabel.layer.shadowColor = UIColor.black.cgColor
         timeLabel.layer.shadowOpacity = 0.75
         timeLabel.layer.shadowRadius = 3
         timeLabel.layer.shadowOffset = .zero
-        for v in [track, bufferedBar, playedBar, thinLine, playhead, timeLabel] as [UIView] {
+        for v in [track, bufferedBar, playedBar, thinLine, knob, planet, timeLabel] as [UIView] {
             v.isUserInteractionEnabled = false
             addSubview(v)
         }
@@ -86,7 +82,7 @@ final class ProgressBarView: UIView {
     }
 
     func setTime(current: Double, total: Double?, live: Bool) {
-        let text = live && total == nil ? "直播" : TimeFormat.string(current) + (total.map { " / " + TimeFormat.string($0) } ?? "")
+        let text = live && total == nil ? L("直播") : TimeFormat.string(current) + (total.map { " / " + TimeFormat.string($0) } ?? "")
         guard text != lastTimeText else { return }
         lastTimeText = text
         let s = NSMutableAttributedString(string: text)
@@ -134,14 +130,19 @@ final class ProgressBarView: UIView {
         for v in [bufferedBar, playedBar] { v.layer.cornerRadius = innerH / 2 }
 
         let px = x0 + w * played
-        let lineH: CGFloat = scrubbing ? 32 : 26
-        playhead.frame = CGRect(x: px - 2, y: trackCenterY + h / 2 + 2 - lineH, width: 4, height: lineH)
-        if #unavailable(iOS 26.0) { playhead.layer.cornerRadius = 2 }
+        let knobSize: CGFloat = scrubbing ? 13 : 9
+        knob.bounds = CGRect(x: 0, y: 0, width: knobSize, height: knobSize)
+        knob.layer.cornerRadius = knobSize / 2
+        knob.center = CGPoint(x: px, y: trackCenterY)
+        // 小行星悬浮在圆点正上方；拖动时升高一点、放大一点
+        planet.bounds = CGRect(origin: .zero, size: PlanetMarkView.size)
+        planet.center = CGPoint(x: px, y: trackCenterY - (scrubbing ? 27 : 21))
+        planet.transform = scrubbing ? CGAffineTransform(scaleX: 1.25, y: 1.25) : .identity
 
-        // 时间放在竖线顶部旁边，默认右侧，靠近右边缘换到左侧
+        // 时间放在小行星旁边，默认右侧，靠近右边缘换到左侧
         let size = timeLabel.bounds.size
-        let gap: CGFloat = 7
-        let labelY = playhead.frame.minY + size.height / 2 + 1
+        let gap: CGFloat = PlanetMarkView.size.width / 2 + 4
+        let labelY = planet.center.y
         var lx = px + gap + size.width / 2
         if lx + size.width / 2 > bounds.width - horizontalInset - 6 { lx = px - gap - size.width / 2 }
         lx = max(lx, size.width / 2 + 6)
@@ -150,7 +151,7 @@ final class ProgressBarView: UIView {
         thinLine.frame = CGRect(x: x0, y: trackCenterY - 1, width: w * played, height: 2)
         thinLine.layer.cornerRadius = 1
 
-        for v in [track, bufferedBar, playedBar, playhead, timeLabel] as [UIView] { v.alpha = full ? 1 : 0 }
+        for v in [track, bufferedBar, playedBar, knob, planet, timeLabel] as [UIView] { v.alpha = full ? 1 : 0 }
         thinLine.alpha = !full && mode == .minimal ? 1 : 0
     }
 

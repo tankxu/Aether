@@ -11,9 +11,9 @@ enum RegionSettings {
     }
 
     static let regions: [Region] = [
-        Region(code: "SG", name: "新加坡"), Region(code: "HK", name: "中国香港"), Region(code: "TW", name: "中国台湾"),
-        Region(code: "MY", name: "马来西亚"), Region(code: "US", name: "美国"), Region(code: "GB", name: "英国"),
-        Region(code: "JP", name: "日本"), Region(code: "TH", name: "泰国"), Region(code: "CN", name: "中国大陆"),
+        Region(code: "SG", name: L("新加坡")), Region(code: "HK", name: L("中国香港")), Region(code: "TW", name: L("中国台湾")),
+        Region(code: "MY", name: L("马来西亚")), Region(code: "US", name: L("美国")), Region(code: "GB", name: L("英国")),
+        Region(code: "JP", name: L("日本")), Region(code: "TH", name: L("泰国")), Region(code: "CN", name: L("中国大陆")),
     ]
 
     /// 网页语言（BCP 47）；空字符串 = 跟随系统

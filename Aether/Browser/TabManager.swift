@@ -90,8 +90,9 @@ final class TabManager: ObservableObject {
         }
     }
 
+    /// 关闭所有网页标签页（主页不算标签页，保留）
     func closeAll(incognito: Bool) {
-        tabs(incognito: incognito).forEach(close)
+        tabs(incognito: incognito).filter { !$0.isBlank }.forEach(close)
     }
 
     // MARK: - 会话（只保存普通标签页）
@@ -103,6 +104,7 @@ final class TabManager: ObservableObject {
             return ["url": url.absoluteString, "title": tab.title]
         }
         UserDefaults.standard.set(items, forKey: Self.sessionKey)
+        SnapshotStore.prune(keeping: normal.compactMap { $0.isBlank ? nil : $0.url })
         let selectedIndex = selected.flatMap { s in normal.filter { !$0.isBlank }.firstIndex(of: s) } ?? -1
         UserDefaults.standard.set(selectedIndex, forKey: Self.selectedKey)
     }
@@ -113,7 +115,9 @@ final class TabManager: ObservableObject {
         var restored: [Tab] = []
         for item in items {
             guard let s = item["url"], let url = URL(string: s) else { continue }
-            restored.append(open(url: url, incognito: false, select: false, lazyTitle: item["title"], lazy: true))
+            let tab = open(url: url, incognito: false, select: false, lazyTitle: item["title"], lazy: true)
+            tab.snapshot = SnapshotStore.load(for: url)
+            restored.append(tab)
         }
         if restored.indices.contains(selectedIndex) {
             select(restored[selectedIndex])

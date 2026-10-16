@@ -1,0 +1,2 @@
+"NSCameraUsageDescription" = "Needed when a website asks to use the camera.";
+"NSMicrophoneUsageDescription" = "Needed when a website asks to use the microphone.";

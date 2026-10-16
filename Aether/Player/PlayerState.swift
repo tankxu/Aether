@@ -21,6 +21,9 @@ struct PlayerState: Equatable {
     var videoHeight: Double
     var textTracks: [MediaTrack]
     var audioTracks: [MediaTrack]
+    var supportsPiP: Bool
+    var airplayAvailable: Bool
+    var isWireless: Bool
 
     init(_ body: [String: Any]) {
         func number(_ key: String) -> Double { (body[key] as? NSNumber)?.doubleValue ?? 0 }
@@ -28,7 +31,7 @@ struct PlayerState: Equatable {
         func tracks(_ key: String) -> [MediaTrack] {
             (body[key] as? [[String: Any]] ?? []).enumerated().map { n, t in
                 let index = (t["i"] as? NSNumber)?.intValue ?? n
-                let label = (t["label"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "轨道 \(n + 1)"
+                let label = (t["label"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? L("轨道 %d", n + 1)
                 return MediaTrack(index: index, label: label, isOn: (t["on"] as? NSNumber)?.boolValue ?? false)
             }
         }
@@ -45,6 +48,9 @@ struct PlayerState: Equatable {
         videoHeight = number("h")
         textTracks = tracks("text")
         audioTracks = tracks("audio")
+        supportsPiP = flag("pip")
+        airplayAvailable = flag("air")
+        isWireless = flag("wireless")
     }
 
     var isPlaying: Bool { !paused && !ended }
@@ -64,6 +70,8 @@ enum PlayerCommand {
     case rate(Double)
     case text(Int)
     case audio(Int)
+    case pip
+    case airplay
     case exit
 
     var payload: [String: Any] {
@@ -74,6 +82,8 @@ enum PlayerCommand {
         case .rate(let r): ["op": "rate", "v": r]
         case .text(let i): ["op": "text", "v": i]
         case .audio(let i): ["op": "audio", "v": i]
+        case .pip: ["op": "pip"]
+        case .airplay: ["op": "airplay"]
         case .exit: ["op": "exit"]
         }
     }
