@@ -6,6 +6,12 @@
 
 以下为 iPhone 18 Pro 模拟器实拍。
 
+| 首页 | 隐藏式快捷操作栏 | 网站收藏页 |
+| --- | --- | --- |
+| <img src="docs/screenshots/home.png" alt="Aether 星球首页与搜索入口" width="240"> | <img src="docs/screenshots/quick-actions.png" alt="网页上展开的液态玻璃快捷操作栏" width="240"> | <img src="docs/screenshots/favorites.png" alt="网站收藏页中的 Google、YouTube、Hacker News 和 Reddit" width="240"> |
+
+首页提供实时星球背景和标准 / 无痕切换。快捷操作栏平时收起为屏幕边缘的细竖线，点击展开后可返回、刷新、回首页、新建或切换标签页；在首页向左翻页即可打开网站收藏。
+
 **YouTube 全屏播放**：侧边播放控制与贴底进度条，画面上没有整块蒙版。
 
 <img src="docs/screenshots/youtube-player.png" alt="Aether 播放 YouTube 视频：侧边控制与玻璃进度条" width="800">
