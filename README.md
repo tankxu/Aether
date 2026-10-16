@@ -2,6 +2,28 @@
 
 一个追求沉浸感的 iOS 浏览器：界面几乎不存在，内容铺满屏幕。
 
+## 界面预览
+
+以下为 iPhone 18 Pro 模拟器实拍。
+
+**YouTube 全屏播放**：侧边播放控制与贴底进度条，画面上没有整块蒙版。
+
+<img src="docs/screenshots/youtube-player.png" alt="Aether 播放 YouTube 视频：侧边控制与玻璃进度条" width="800">
+
+**自动画中画设置**：在播放器的「⋯」菜单中切换，同时可设置常显进度条、旋转屏幕和播放速度。
+
+<img src="docs/screenshots/pip-settings.png" alt="播放器菜单中的离开 App 时自动画中画选项" width="800">
+
+此图展示画中画开关；本次模拟器环境未提供可用的 PiP 浮窗入口，未展示浮窗效果。实际可用性取决于设备与网站播放器。
+
+| 视频下载完成 | 下载后预览 |
+| --- | --- |
+| <img src="docs/screenshots/video-downloads.png" alt="视频下载列表与文件保存位置" width="280"> | <img src="docs/screenshots/download-preview.png" alt="下载完成的视频在应用内预览" width="280"> |
+
+下载示例使用可直接访问的 MP4 文件，可在应用内预览、分享，或通过「文件」App 查看。此处演示的是直链视频下载。
+
+视频画面来自 Blender Foundation 的 [Big Buck Bunny](https://peach.blender.org/)；[YouTube 播放示例](https://www.youtube.com/watch?v=aqz-KE-bpKQ)，[W3C 托管的下载示例](https://media.w3.org/2010/05/bunny/trailer.mp4)。视频及站点标识归各自权利人所有。
+
 ## 特性
 
 - **沉浸浏览**：没有常驻工具栏，只在屏幕边缘留一根细竖线，点一下才展开 Safari 风格的液态玻璃工具栏；状态栏底色和 iOS 26 Safari 一样，采样页面顶部的实际颜色。
