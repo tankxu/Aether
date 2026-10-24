@@ -168,3 +168,36 @@
 "常用网站" = "Common Sites";
 "已禁止的网站（%d）" = "Blocked Sites (%d)";
 "这些网站的链接只在浏览器里打开，不会跳到对应的 App。左滑可以删除。" = "Links on these sites open in the browser, not in their apps. Swipe left to remove.";
+"在此网站禁止弹出新标签页" = "Block Pop-up Tabs on This Site";
+"禁止弹出新标签页" = "No Pop-up Tabs";
+"已阻止弹出新标签页" = "Pop-up tab blocked";
+
+/* 网页翻译 */
+"翻译网页" = "Translate Page";
+"显示原文" = "Show Original";
+"翻译成%@ · %@" = "To %@ · %@";
+"自动翻译此网站" = "Auto-Translate This Site";
+"自动翻译" = "Auto-translate";
+"正在翻译成%@" = "Translating to %@";
+"网页翻译" = "Page Translation";
+"系统翻译" = "System Translation";
+"替换原文" = "Replace Original";
+"双语对照" = "Side by Side";
+"翻译成" = "Translate To";
+"显示方式" = "Display";
+"翻译图片里的文字" = "Translate Text in Images";
+"翻译引擎" = "Translation Engine";
+"模型" = "Model";
+"接口地址" = "Base URL";
+"自动翻译的网站（%d）" = "Auto-Translated Sites (%d)";
+"还没有填写 %@ 的 API Key（设置 → 网页翻译）" = "No API key for %@ yet (Settings → Page Translation)";
+"翻译服务返回了无法识别的结果：%@" = "The translation service returned an unexpected result: %@";
+"系统翻译需要 iOS 18 或更新版本" = "System translation requires iOS 18 or later";
+"图片、canvas 和背景图里的文字会先在本机识别，再把译文盖在原来的位置。" = "Text in images, canvases and background images is recognized on device, and the translation is laid over the original.";
+"在 Google AI Studio（aistudio.google.com）创建 API Key。Key 只保存在本机钥匙串里。" = "Create an API key in Google AI Studio (aistudio.google.com). The key is stored only in this device's Keychain.";
+"在 platform.openai.com 创建 API Key。接口地址可以换成其他兼容 OpenAI 的服务。Key 只保存在本机钥匙串里。" = "Create an API key at platform.openai.com. You can change the base URL to any OpenAI-compatible service. The key is stored only in this device's Keychain.";
+"在网页的 ⋯ 菜单 → 网站设置里打开“自动翻译此网站”。左滑可以删除。" = "Turn on “Auto-Translate This Site” from the page's ⋯ menu → Site Settings. Swipe left to remove.";
+"免费，在本机离线翻译，第一次翻译某种语言时会提示下载语言包。整页一次翻完。" = "Free and offline on device. You'll be asked to download a language the first time you translate it. Translates the whole page at once.";
+"网页文字会发送给所选服务翻译，按用量计费。为了省钱，只翻译屏幕附近的内容，滚到哪翻到哪。" = "Page text is sent to the selected service and billed by usage. To save cost, only text near the screen is translated, as you scroll.";
+"%@ 的额度用完了，约 %@ 后恢复" = "%@ quota is used up. It resets in about %@";
+"%@ 的请求太频繁，稍后会自动重试" = "Too many requests to %@. Will retry shortly";

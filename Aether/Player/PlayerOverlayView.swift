@@ -527,7 +527,9 @@ final class PlayerOverlayView: UIView, UIGestureRecognizerDelegate {
         }
         items.append(UIMenu(title: L("播放速度"), subtitle: "\(state.rate.formatted())×", image: UIImage(systemName: "speedometer"), children: rates))
 
-        items.append(UIAction(title: L("旋转屏幕"), image: UIImage(systemName: "rotate.right")) { [weak self] _ in self?.onRotate?() })
+        if traitCollection.userInterfaceIdiom != .pad {
+            items.append(UIAction(title: L("旋转屏幕"), image: UIImage(systemName: "rotate.right")) { [weak self] _ in self?.onRotate?() })
+        }
         items.append(UIAction(title: L("常显进度条"), image: UIImage(systemName: "minus"), state: Settings.alwaysShowProgress ? .on : .off) { _ in
             Settings.alwaysShowProgress.toggle()
         })

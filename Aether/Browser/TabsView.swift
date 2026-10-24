@@ -24,10 +24,12 @@ struct TabsView: View {
         self.onDone = onDone
     }
 
-    /// 竖屏两列；横屏（高度紧凑）四列、卡片矮一些
+    /// 列数按宽度算：手机竖屏两列、横屏四列，iPad 四到七列；高度紧凑（手机横屏）时卡片矮一些
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     private var landscape: Bool { verticalSizeClass == .compact }
-    private var columns: [GridItem] { Array(repeating: GridItem(.flexible(), spacing: 14), count: landscape ? 4 : 2) }
+    private func columns(width: CGFloat) -> [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 14), count: max(2, Int(width / 190)))
+    }
 
     /// 卡片在窗口里的位置（粒子效果要截这块区域）
     @State private var cardFrames: [UUID: CGRect] = [:]
@@ -103,7 +105,7 @@ struct TabsView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.top, 160)
                 } else {
-                    LazyVGrid(columns: columns, spacing: 18) {
+                    LazyVGrid(columns: columns(width: container.size.width), spacing: 18) {
                         ForEach(tabs) { tab in
                             let offset = swipeOffsets[tab.id] ?? 0
                             TabCard(tab: tab, isSelected: tab === manager.selected, height: landscape ? 130 : 210, onClose: { dissolve(tab) })

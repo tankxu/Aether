@@ -33,12 +33,16 @@ enum HomeItem: Codable, Hashable, Identifiable {
     }
 }
 
-/// 应用列表：若干屏，每屏最多 capacity 个（4 列 × 5 行），存在 Application Support/apps.json
+/// 应用列表：若干屏，每屏最多 capacity 个，存在 Application Support/apps.json
 final class AppLibrary {
     static let shared = AppLibrary()
-    static let columns = 4
-    static let rows = 5
-    static var capacity: Int { columns * rows }
+    /// 每屏容量：手机 4 × 5；iPad 30 个，竖屏 6 × 5、横屏 10 × 3（容量不变，转屏不用重新分屏）
+    static var capacity: Int { UIDevice.current.userInterfaceIdiom == .pad ? 30 : 20 }
+
+    static func grid(landscape: Bool) -> (columns: Int, rows: Int) {
+        guard UIDevice.current.userInterfaceIdiom == .pad else { return (4, 5) }
+        return landscape ? (10, 3) : (6, 5)
+    }
 
     private(set) var pages: [[HomeItem]] = [[]]
     var onChange: (() -> Void)?

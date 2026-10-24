@@ -168,3 +168,36 @@
 "常用网站" = "Sitios comunes";
 "已禁止的网站（%d）" = "Sitios bloqueados (%d)";
 "这些网站的链接只在浏览器里打开，不会跳到对应的 App。左滑可以删除。" = "Los enlaces de estos sitios se abren en el navegador, no en sus apps. Desliza a la izquierda para eliminar.";
+"在此网站禁止弹出新标签页" = "Bloquear pestañas emergentes en este sitio";
+"禁止弹出新标签页" = "Sin pestañas emergentes";
+"已阻止弹出新标签页" = "Pestaña emergente bloqueada";
+
+/* 网页翻译 */
+"翻译网页" = "Traducir página";
+"显示原文" = "Mostrar original";
+"翻译成%@ · %@" = "A %@ · %@";
+"自动翻译此网站" = "Traducir automáticamente este sitio";
+"自动翻译" = "Traducción automática";
+"正在翻译成%@" = "Traduciendo a %@";
+"网页翻译" = "Traducción de páginas";
+"系统翻译" = "Traducción del sistema";
+"替换原文" = "Reemplazar original";
+"双语对照" = "Bilingüe";
+"翻译成" = "Traducir a";
+"显示方式" = "Visualización";
+"翻译图片里的文字" = "Traducir texto en imágenes";
+"翻译引擎" = "Motor de traducción";
+"模型" = "Modelo";
+"接口地址" = "URL base";
+"自动翻译的网站（%d）" = "Sitios con traducción automática (%d)";
+"还没有填写 %@ 的 API Key（设置 → 网页翻译）" = "Aún no has añadido la clave API de %@ (Ajustes → Traducción de páginas)";
+"翻译服务返回了无法识别的结果：%@" = "El servicio de traducción devolvió un resultado inesperado: %@";
+"系统翻译需要 iOS 18 或更新版本" = "La traducción del sistema requiere iOS 18 o posterior";
+"图片、canvas 和背景图里的文字会先在本机识别，再把译文盖在原来的位置。" = "El texto de imágenes, canvas e imágenes de fondo se reconoce en el dispositivo y la traducción se superpone al original.";
+"在 Google AI Studio（aistudio.google.com）创建 API Key。Key 只保存在本机钥匙串里。" = "Crea una clave API en Google AI Studio (aistudio.google.com). La clave solo se guarda en el llavero de este dispositivo.";
+"在 platform.openai.com 创建 API Key。接口地址可以换成其他兼容 OpenAI 的服务。Key 只保存在本机钥匙串里。" = "Crea una clave API en platform.openai.com. Puedes cambiar la URL base por cualquier servicio compatible con OpenAI. La clave solo se guarda en el llavero de este dispositivo.";
+"在网页的 ⋯ 菜单 → 网站设置里打开“自动翻译此网站”。左滑可以删除。" = "Activa “Traducir automáticamente este sitio” en el menú ⋯ de la página → Ajustes del sitio. Desliza a la izquierda para eliminar.";
+"免费，在本机离线翻译，第一次翻译某种语言时会提示下载语言包。整页一次翻完。" = "Gratis y sin conexión en el dispositivo. La primera vez que traduzcas un idioma se te pedirá descargarlo. Traduce toda la página de una vez.";
+"网页文字会发送给所选服务翻译，按用量计费。为了省钱，只翻译屏幕附近的内容，滚到哪翻到哪。" = "El texto de la página se envía al servicio elegido y se cobra según el uso. Para ahorrar, solo se traduce el contenido cercano a la pantalla a medida que te desplazas.";
+"%@ 的额度用完了，约 %@ 后恢复" = "Se agotó la cuota de %@. Se restablece en unos %@";
+"%@ 的请求太频繁，稍后会自动重试" = "Demasiadas solicitudes a %@. Se reintentará en breve";

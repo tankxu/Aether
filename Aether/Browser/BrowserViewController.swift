@@ -4,6 +4,7 @@ import WebKit
 
 final class BrowserViewController: UIViewController {
     private var environment: WebEnvironment!
+    private let pageTranslator = PageTranslator()
     private var tabManager: TabManager!
 
     private let statusBackdrop = UIView()
@@ -39,13 +40,28 @@ final class BrowserViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
-        environment = WebEnvironment(scriptHandler: self)
+        environment = WebEnvironment(scriptHandler: self, translator: pageTranslator)
+        pageTranslator.isActive = { [weak self] webView in
+            guard let self, let tab = self.tab(for: webView) else { return false }
+            return self.isTranslating(tab)
+        }
+        pageTranslator.onError = { [weak self] message in self?.showToast(message) }
         tabManager = TabManager(environment: environment)
         tabManager.delegate = self
         setUpViews()
 
         tabManager.restoreSession()
         if current == nil { openNewTab(incognito: false, focusAddress: false) }
+
+        // addChild 会刷新状态栏样式、读到 tabManager，所以放在标签页建好之后
+        if #available(iOS 18.0, *) {
+            // 系统翻译要一个在界面里的 SwiftUI 视图来拿翻译会话、弹出语言包下载
+            let host = SystemTranslator.shared.hostController
+            addChild(host)
+            host.view.frame = CGRect(x: 0, y: 0, width: 1, height: 1)
+            view.addSubview(host.view)
+            host.didMove(toParent: self)
+        }
     }
 
     private func setUpViews() {
@@ -155,8 +171,10 @@ final class BrowserViewController: UIViewController {
     override var prefersStatusBarHidden: Bool { player != nil }
     override var prefersHomeIndicatorAutoHidden: Bool { player != nil }
     override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge { player != nil ? .all : [] }
-    /// 只有网页（和全屏弹出的标签页列表，它自己决定）能横屏；首页、设置、历史、下载等都是竖屏
+    /// 只有网页（和全屏弹出的标签页列表，它自己决定）能横屏；首页、设置、历史、下载等都是竖屏。
+    /// iPad 不锁方向：窗口可以随意转、分屏、台前调度缩放，界面按宽度自适应
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+        if isPad { return .all }
         if player != nil { return orientationMask }
         if let presented = presentedViewController, presented.modalPresentationStyle != .fullScreen,
            String(describing: type(of: presented)).hasPrefix("UIHostingController") {
@@ -203,7 +221,11 @@ final class BrowserViewController: UIViewController {
         view.window?.windowScene?.effectiveGeometry.interfaceOrientation.isLandscape ?? false
     }
 
+    private var isPad: Bool { traitCollection.userInterfaceIdiom == .pad }
+
+    /// iPad 上不强制旋转（多任务窗口里系统也不会响应）
     private func setOrientation(_ mask: UIInterfaceOrientationMask, request: UIInterfaceOrientationMask?) {
+        guard !isPad else { return }
         orientationMask = mask
         setNeedsUpdateOfSupportedInterfaceOrientations()
         player?.window?.host.setNeedsUpdateOfSupportedInterfaceOrientations()
@@ -359,6 +381,17 @@ final class BrowserViewController: UIViewController {
                 }
             })
         }
+        if isPage, !tab.isFileDocument {
+            let translating = isTranslating(tab)
+            pageItems.append(UIAction(
+                title: translating ? L("显示原文") : L("翻译网页"),
+                subtitle: translating ? nil : L("翻译成%@ · %@", TranslationSettings.targetName, TranslationSettings.engine.name),
+                image: UIImage(systemName: translating ? "character.book.closed" : "translate")
+            ) { [weak self] _ in
+                self?.setToolbar(expanded: false)
+                self?.setTranslation(!translating, for: tab)
+            })
+        }
         if isPage, let host = tab.url?.host() {
             pageItems.append(siteMenu(tab: tab, host: host))
         }
@@ -384,6 +417,8 @@ final class BrowserViewController: UIViewController {
         let blocker = ContentBlocker.shared
         let adOn = blocker.isEnabled && !blocker.isWhitelisted(host)
         let appLinksBlocked = AppLinkPolicy.isBlocked(host)
+        let popupsBlocked = PopupPolicy.isBlocked(host)
+        let autoTranslate = AutoTranslatePolicy.isEnabled(host)
         var items: [UIMenuElement] = [
             UIAction(
                 title: tab.prefersDesktop ? L("请求移动版网站") : L("请求桌面版网站"),
@@ -411,14 +446,44 @@ final class BrowserViewController: UIViewController {
         items.append(UIAction(title: L("在此网站禁止跳转 App"), image: UIImage(systemName: "arrow.up.forward.app"), state: appLinksBlocked ? .on : .off) { _ in
             AppLinkPolicy.setBlocked(host, !appLinksBlocked)
         })
+        items.append(UIAction(title: L("在此网站禁止弹出新标签页"), image: UIImage(systemName: "plus.square.on.square"), state: popupsBlocked ? .on : .off) { _ in
+            PopupPolicy.setBlocked(host, !popupsBlocked)
+        })
+        items.append(UIAction(title: L("自动翻译此网站"), image: UIImage(systemName: "translate"), state: autoTranslate ? .on : .off) { [weak self] _ in
+            AutoTranslatePolicy.setEnabled(host, !autoTranslate)
+            // 打开时顺便翻译当前页；关闭时回到原文
+            tab.translationOverride = nil
+            self?.pushTranslationState(tab)
+        })
         // 副标题直接显示当前状态，不点进去也知道
         var summary = [adOn ? L("广告过滤开") : L("广告过滤关")]
         if tab.prefersDesktop { summary.append(L("桌面版")) }
         if appLinksBlocked { summary.append(L("禁止跳转 App")) }
+        if popupsBlocked { summary.append(L("禁止弹出新标签页")) }
+        if autoTranslate { summary.append(L("自动翻译")) }
         let displayHost = host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
         return UIMenu(title: L("网站设置"), subtitle: summary.joined(separator: " · "), image: UIImage(systemName: "globe"), children: [
             UIMenu(title: displayHost, options: .displayInline, children: items),
         ])
+    }
+
+    // MARK: - 翻译
+
+    private func isTranslating(_ tab: Tab) -> Bool {
+        tab.translationOverride ?? AutoTranslatePolicy.isEnabled(tab.webView.url?.host())
+    }
+
+    private func setTranslation(_ on: Bool, for tab: Tab) {
+        tab.translationOverride = on
+        pushTranslationState(tab)
+        if on { showToast(L("正在翻译成%@", TranslationSettings.targetName)) }
+    }
+
+    /// 把开关和设置推给页面（主框架再转给各个 iframe）
+    private func pushTranslationState(_ tab: Tab) {
+        tab.webView.callAsyncJavaScript("window.__aetherT && window.__aetherT.set(s)",
+                                        arguments: ["s": PageTranslator.state(active: isTranslating(tab))],
+                                        in: nil, in: PageTranslator.world, completionHandler: nil)
     }
 
     /// 长按后退按钮：后退历史
@@ -520,9 +585,13 @@ final class BrowserViewController: UIViewController {
         input.onTextChange = { text in model.query = text }
         input.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(input)
+        // 手机上左右铺满；iPad 大屏居中，不拉成一整条
+        let fullWidth = input.widthAnchor.constraint(equalTo: view.safeAreaLayoutGuide.widthAnchor, constant: -32)
+        fullWidth.priority = .defaultHigh
         NSLayoutConstraint.activate([
-            input.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16),
-            input.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
+            fullWidth,
+            input.widthAnchor.constraint(lessThanOrEqualToConstant: AddressSuggestionsView.maxInputWidth),
+            input.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor),
             input.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor, constant: -8),
         ])
         input.onCancel = { [weak self] in self?.hideAddressInput() }
@@ -636,6 +705,10 @@ final class BrowserViewController: UIViewController {
             onAdBlockChange: { [weak self] in
                 if let tab = self?.current, !tab.isBlank { tab.webView.reload() }
             },
+            onTranslationChange: { [weak self] in
+                guard let self else { return }
+                for tab in self.tabManager.tabs where self.isTranslating(tab) { self.pushTranslationState(tab) }
+            },
             onClearData: {
                 HistoryStore.shared.clear()
                 FaviconStore.shared.clear()
@@ -650,6 +723,7 @@ final class BrowserViewController: UIViewController {
     private func share(_ url: URL) {
         let vc = UIActivityViewController(activityItems: [url], applicationActivities: nil)
         vc.popoverPresentationController?.sourceView = toolbar
+        vc.popoverPresentationController?.sourceRect = toolbar.bounds
         present(vc, animated: true)
     }
 
@@ -748,6 +822,17 @@ final class BrowserViewController: UIViewController {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.showDownloads() }
         case "tabs-open": showTabs()
         case "settings": showSettings()
+        case "translate":
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { if let tab = self.current { self.setTranslation(true, for: tab) } }
+        case "translate-scroll":
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { if let tab = self.current { self.setTranslation(true, for: tab) } }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 14) {
+                guard let scroll = self.current?.webView.scrollView else { return }
+                scroll.setContentOffset(CGPoint(x: 0, y: scroll.contentOffset.y + scroll.bounds.height * 2), animated: true)
+            }
+        case "translate-off":
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { if let tab = self.current { self.setTranslation(true, for: tab) } }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 9) { if let tab = self.current { self.setTranslation(false, for: tab) } }
         case "applinks": present(UIHostingController(rootView: NavigationStack { AppLinkSettingsView() }), animated: true)
         case "tabs-dust":
             showTabs()
@@ -938,7 +1023,10 @@ final class BrowserViewController: UIViewController {
         player = PlayerSession(webView: webView, frame: frame, overlay: overlay, wasLandscape: interfaceIsLandscape)
         if let scene = view.window?.windowScene {
             let window = PlayerWindow(scene: scene, overlay: overlay)
-            window.host.orientations = { [weak self] in self?.orientationMask ?? .allButUpsideDown }
+            window.host.orientations = { [weak self] in
+                guard let self else { return .allButUpsideDown }
+                return self.isPad ? .all : self.orientationMask
+            }
             player?.window = window
         } else {
             view.addSubview(overlay)
@@ -1354,6 +1442,15 @@ extension BrowserViewController: WKUIDelegate {
         guard player == nil,
               !ContentBlocker.shared.shouldBlockPopup(to: navigationAction.request.url, from: webView.configuration.userContentController)
         else { return nil }
+        // 此网站禁止弹新标签页：点 target="_blank" 链接改在当前页打开，脚本弹出的直接拦掉
+        if PopupPolicy.isBlocked(webView.url?.host()) {
+            if navigationAction.navigationType == .linkActivated {
+                webView.load(navigationAction.request)
+            } else {
+                showToast(L("已阻止弹出新标签页"))
+            }
+            return nil
+        }
         let opener = tab(for: webView)
         let tab = tabManager.open(url: nil, incognito: opener?.isIncognito ?? false, configuration: configuration, after: opener)
         return tab.webView

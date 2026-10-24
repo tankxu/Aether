@@ -7,6 +7,8 @@ final class Tab: NSObject, Identifiable {
     let isIncognito: Bool
     var snapshot: UIImage?
     var prefersDesktop = false
+    /// 用户在这个标签页里手动打开 / 关闭了翻译；nil 时跟随“自动翻译此网站”。导航后保持（和 Chrome 一样）
+    var translationOverride: Bool?
     /// 主框架文档的 MIME 类型（记下对应网址：从缓存后退时不会重新收到响应）
     var mainMIME: (url: URL, type: String)?
     /// 用 Aether 页面代替媒体文档显示的文件地址（这次的 text/html 响应不覆盖 mainMIME）

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     var onAdBlockChange: () -> Void
+    var onTranslationChange: () -> Void
     var onClearData: () -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -66,6 +67,14 @@ struct SettingsView: View {
 
                 Section {
                     NavigationLink {
+                        TranslationSettingsView(onChange: onTranslationChange)
+                    } label: {
+                        LabeledContent(L("网页翻译"), value: "\(TranslationSettings.targetName) · \(TranslationSettings.engine.name)")
+                    }
+                }
+
+                Section {
+                    NavigationLink {
                         AdBlockSettingsView(onChange: onAdBlockChange)
                     } label: {
                         LabeledContent(L("广告过滤"), value: blocker.isEnabled ? L("已开启") : L("已关闭"))
@@ -73,7 +82,9 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Toggle(L("全屏时自动横屏"), isOn: $autoRotate)
+                    if UIDevice.current.userInterfaceIdiom != .pad {
+                        Toggle(L("全屏时自动横屏"), isOn: $autoRotate)
+                    }
                     Toggle(L("离开 App 时自动画中画"), isOn: $autoPiP)
                     Toggle(L("控件隐藏时保留细进度条"), isOn: $alwaysShowProgress)
                     Picker(L("控制按钮位置"), selection: $railSide) {

@@ -73,8 +73,11 @@ final class HomeScreenView: UIView, UIScrollViewDelegate, UIGestureRecognizerDel
     private var folderOverlay: FolderOverlayView?
     private var iconSubscription: AnyCancellable?
 
-    private let columns = AppLibrary.columns
-    private let rows = AppLibrary.rows
+    private var grid: (columns: Int, rows: Int) { AppLibrary.grid(landscape: bounds.width > bounds.height) }
+    private var columns: Int { grid.columns }
+    private var rows: Int { grid.rows }
+    /// 上次排版时的列数；iPad 转屏后列数变了要重新摆图标
+    private var renderedColumns = 0
 
     override init(frame: CGRect) {
         var config: UIButton.Configuration
@@ -143,7 +146,9 @@ final class HomeScreenView: UIView, UIScrollViewDelegate, UIGestureRecognizerDel
         let top = safe.top + 60
         let canvasSize = HomeGrid.canvasSize(columns: columns, rows: rows)
         let available = CGSize(width: w - 32, height: max(searchY - 18 - top, 100))
-        let scale = min(1, available.width / canvasSize.width, available.height / canvasSize.height)
+        // iPad 屏幕大，图标放大一些，不至于缩在中间一小块
+        let maxScale: CGFloat = traitCollection.userInterfaceIdiom == .pad ? 1.3 : 1
+        let scale = min(maxScale, available.width / canvasSize.width, available.height / canvasSize.height)
         for (i, page) in gridPages.enumerated() {
             page.frame = CGRect(x: w * CGFloat(i + 1), y: 0, width: w, height: h)
             page.scale = scale
@@ -161,6 +166,10 @@ final class HomeScreenView: UIView, UIScrollViewDelegate, UIGestureRecognizerDel
 
         doneButton.frame = CGRect(x: w - safe.right - 16 - 76, y: safe.top + 8, width: 76, height: 40)
         folderOverlay?.frame = bounds
+
+        if renderedColumns != columns, drag == nil {
+            DispatchQueue.main.async { [weak self] in self?.render(animated: false) }
+        }
     }
 
     private func ensurePageViews(_ count: Int) {
@@ -191,6 +200,7 @@ final class HomeScreenView: UIView, UIScrollViewDelegate, UIGestureRecognizerDel
 
     private func render(animated: Bool) {
         ensurePageViews(pages.count)
+        renderedColumns = columns
         var seen = Set<UUID>()
         for (p, items) in pages.enumerated() {
             let canvas = gridPages[p].canvas

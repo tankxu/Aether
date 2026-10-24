@@ -49,6 +49,10 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         if let i = args.firstIndex(of: "-AetherOpenURL"), i + 1 < args.count, let url = URL(string: args[i + 1]) {
             browser.load(url)
         }
+        // -AetherGeminiKey / -AetherOpenAIKey <key>：把 Key 写进钥匙串，测试时免得在设备上手输
+        for (flag, account) in [("-AetherGeminiKey", TranslationSettings.geminiKeyAccount), ("-AetherOpenAIKey", TranslationSettings.openAIKeyAccount)] {
+            if let i = args.firstIndex(of: flag), i + 1 < args.count { Keychain.set(account, args[i + 1]) }
+        }
         if args.contains("-AetherLandscape") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { browser.debugShow("landscape") }
         }

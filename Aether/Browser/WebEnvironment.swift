@@ -13,11 +13,14 @@ final class WebEnvironment {
 
     private let playerScript: WKUserScript?
     private let chromeScript: WKUserScript?
+    private let translateScript: WKUserScript?
     private weak var scriptHandler: WKScriptMessageHandler?
+    private weak var translator: PageTranslator?
     private var incognitoStore: WKWebsiteDataStore?
 
-    init(scriptHandler: WKScriptMessageHandler) {
+    init(scriptHandler: WKScriptMessageHandler, translator: PageTranslator) {
         self.scriptHandler = scriptHandler
+        self.translator = translator
         if let url = Bundle.main.url(forResource: "aether-player", withExtension: "js"),
            var source = try? String(contentsOf: url, encoding: .utf8) {
             #if DEBUG
@@ -34,6 +37,13 @@ final class WebEnvironment {
         } else {
             chromeScript = nil
         }
+        // 翻译脚本注入每个框架，平时不做事，等原生打开翻译
+        if let url = Bundle.main.url(forResource: "aether-translate", withExtension: "js"),
+           let source = try? String(contentsOf: url, encoding: .utf8) {
+            translateScript = WKUserScript(source: source, injectionTime: .atDocumentEnd, forMainFrameOnly: false, in: PageTranslator.world)
+        } else {
+            translateScript = nil
+        }
     }
 
     func makeConfiguration(incognito: Bool) -> WKWebViewConfiguration {
@@ -43,7 +53,10 @@ final class WebEnvironment {
             controller.add(WeakScriptHandler(scriptHandler), contentWorld: ElementPicker.world, name: ElementPicker.messageName)
             controller.add(WeakScriptHandler(scriptHandler), contentWorld: Self.chromeWorld, name: Self.chromeMessageName)
         }
-        ContentBlocker.shared.register(controller, baseScripts: [playerScript, chromeScript].compactMap { $0 })
+        if let translator {
+            controller.addScriptMessageHandler(WeakReplyHandler(translator), contentWorld: PageTranslator.world, name: PageTranslator.messageName)
+        }
+        ContentBlocker.shared.register(controller, baseScripts: [playerScript, chromeScript, translateScript].compactMap { $0 })
 
         let config = WKWebViewConfiguration()
         config.userContentController = controller
@@ -98,5 +111,19 @@ final class WeakScriptHandler: NSObject, WKScriptMessageHandler {
 
     func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
         target?.userContentController(controller, didReceive: message)
+    }
+}
+
+/// 带回复的消息处理同样用弱代理
+final class WeakReplyHandler: NSObject, WKScriptMessageHandlerWithReply {
+    private weak var target: PageTranslator?
+
+    init(_ target: PageTranslator) {
+        self.target = target
+    }
+
+    func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) async -> (Any?, String?) {
+        guard let target else { return (nil, "gone") }
+        return await target.userContentController(controller, didReceive: message)
     }
 }

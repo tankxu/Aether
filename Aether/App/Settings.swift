@@ -131,6 +131,27 @@ enum AppLinkPolicy {
     }
 }
 
+/// 按网站禁止自动弹出新标签页（window.open、target="_blank"）
+enum PopupPolicy {
+    private static let key = "popups.blockedHosts"
+
+    static var blockedHosts: [String] {
+        get { UserDefaults.standard.stringArray(forKey: key) ?? [] }
+        set { UserDefaults.standard.set(Array(Set(newValue)).sorted(), forKey: key) }
+    }
+
+    static func isBlocked(_ host: String?) -> Bool {
+        guard let host else { return false }
+        let h = host.lowercased()
+        return blockedHosts.contains { h == $0 || h.hasSuffix("." + $0) }
+    }
+
+    static func setBlocked(_ host: String, _ blocked: Bool) {
+        let h = AppLinkPolicy.normalize(host)
+        if blocked { blockedHosts.append(h) } else { blockedHosts.removeAll { $0 == h } }
+    }
+}
+
 enum URLResolver {
     /// 地址栏输入 → 网址；不像网址的按搜索处理
     static func resolve(_ input: String) -> URL? {

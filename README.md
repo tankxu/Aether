@@ -1,6 +1,6 @@
 # Aether
 
-一个追求沉浸感的 iOS 浏览器：界面几乎不存在，内容铺满屏幕。
+一个追求沉浸感的 iOS 浏览器：界面几乎不存在，内容铺满屏幕。支持 iPhone 和 iPad。
 
 ## 界面预览
 
@@ -30,7 +30,53 @@
 
 下载示例使用可直接访问的 MP4 文件，可在应用内预览、分享，或通过「文件」App 查看。此处演示的是直链视频下载。
 
-视频画面来自 Blender Foundation 的 [Big Buck Bunny](https://peach.blender.org/)；[YouTube 播放示例](https://www.youtube.com/watch?v=aqz-KE-bpKQ)，[W3C 托管的下载示例](https://media.w3.org/2010/05/bunny/trailer.mp4)。视频及站点标识归各自权利人所有。
+### iPad
+
+以下为 iPad Pro 11 英寸（M5）模拟器实拍。iPad 上横竖屏都能用，也支持分屏和台前调度；界面按窗口宽度排版，窗口缩窄后自动回到手机布局。
+
+**横屏首页与网站收藏**：收藏页横屏一排 10 个（10 × 3），竖屏一排 6 个（6 × 5），转屏只重新排列，不会把收藏挤到别的屏。
+
+| 横屏首页 | 横屏网站收藏 |
+| --- | --- |
+| <img src="docs/screenshots/ipad-home-landscape.png" alt="iPad 横屏的 Aether 星球首页" width="400"> | <img src="docs/screenshots/ipad-favorites-landscape.png" alt="iPad 横屏收藏页，一排 10 个网站图标" width="400"> |
+
+**横屏浏览与搜索**：工具栏展开后贴在竖线一侧，不挡正文；点地址栏时，收藏按屏幕宽度排列，地址输入框居中。
+
+| 横屏浏览网页 | 横屏搜索 |
+| --- | --- |
+| <img src="docs/screenshots/ipad-browsing-landscape.png" alt="iPad 横屏浏览维基百科，快捷操作栏贴在右侧" width="400"> | <img src="docs/screenshots/ipad-search-landscape.png" alt="iPad 横屏地址栏输入页，收藏一排 10 个" width="400"> |
+
+**竖屏网站收藏**：
+
+<img src="docs/screenshots/ipad-favorites-portrait.png" alt="iPad 竖屏收藏页，一排 6 个网站图标" width="300">
+
+### 网页翻译
+
+以下为 iPad Pro 11 英寸真机实拍。Safari 自带的翻译经常漏掉点餐页这类动态网页；Aether 的翻译只要文字显示在屏幕上就翻：后插入的内容、原本隐藏后来展开的内容、Shadow DOM、iframe、输入框提示文字都包括在内，图片、canvas 和背景图里的字会先在本机识别，再把译文盖在原来的位置。
+
+**点餐页（泰文 → 简体中文，ChatGPT）**：菜单、价格、按钮、促销信息和图片里的字一起翻好。
+
+| 原文 | 翻译后 |
+| --- | --- |
+| <img src="docs/screenshots/ipad-translate-original.png" alt="泰文点餐页原文，含菜单、价格、按钮和带文字的图片" width="400"> | <img src="docs/screenshots/ipad-translate-chatgpt.png" alt="同一页面翻译成简体中文，图片和 canvas 里的文字也被译文覆盖" width="400"> |
+
+**双语对照与长网页**：双语模式把译文放在原文下方；云端引擎只翻屏幕附近的内容，滚到哪翻到哪。
+
+| 双语对照（系统翻译） | 泰文维基百科（Gemini） |
+| --- | --- |
+| <img src="docs/screenshots/ipad-translate-bilingual.png" alt="双语对照模式，泰文原文下方显示中文译文" width="400"> | <img src="docs/screenshots/ipad-translate-wikipedia.png" alt="泰文维基百科冬阴功条目翻译成简体中文" width="400"> |
+
+在网页的「⋯」菜单里点「翻译网页」，或在网站设置里打开「自动翻译此网站」。引擎在「设置 → 网页翻译」里选：
+
+| 引擎 | 特点 |
+| --- | --- |
+| 系统翻译（iOS 18+） | 免费，本机离线，最快；第一次翻译某种语言时提示下载语言包 |
+| ChatGPT（默认 gpt-5.4-mini） | 译文更自然，首屏约 5–10 秒；接口地址可换成其他兼容 OpenAI 的服务 |
+| Gemini（默认 gemini-flash-lite-latest） | 译文更自然，首屏约 5–10 秒；免费额度按每天请求次数计算 |
+
+Safari 的图片翻译用的是 VisionKit 未公开的接口，第三方 App 用不了，所以图片文字用 Vision 识别后自己盖译文。
+
+视频画面来自 Blender Foundation 的 [Big Buck Bunny](https://peach.blender.org/)；[YouTube 播放示例](https://www.youtube.com/watch?v=aqz-KE-bpKQ)，[W3C 托管的下载示例](https://media.w3.org/2010/05/bunny/trailer.mp4)。视频及站点标识归各自权利人所有。点餐页是自己写的测试页；维基百科截图来自泰文维基百科 [ต้มยำ](https://th.wikipedia.org/wiki/ต้มยำ) 条目，内容按 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) 授权。
 
 ## 特性
 
@@ -45,7 +91,13 @@
   - 订阅 EasyList、AdGuard 中文、uBlock filters 等规则，在本机转换成 WebKit 内容拦截规则（约 7.5 万条）
   - 网页内脚本引擎执行 uBO scriptlet 和过程式选择器（`:has-text`、`:upward` 等）
   - 手动屏蔽页面元素、按网站停用过滤
-- **无痕模式**、**历史记录**（带网站图标）、**按网站禁止跳转 App**、**地区与语言**（让 Google、YouTube 等按指定地区显示）
+- **网页翻译**：
+  - 文字显示出来就翻：动态插入、展开的内容、Shadow DOM、iframe、输入框提示文字
+  - 图片、canvas、背景图里的文字在本机识别后，用同样的底色把译文盖在原位
+  - 替换原文或双语对照；按网站自动翻译
+  - 引擎可选系统翻译（离线免费）、ChatGPT、Gemini，API Key 只存在本机钥匙串
+- **支持 iPad**：横竖屏、分屏、台前调度；首页收藏、搜索页收藏、标签页列表都按屏幕宽度增加列数，全屏播放不强制转屏
+- **无痕模式**、**历史记录**（带网站图标）、**按网站禁止跳转 App**、**按网站禁止弹出新标签页**、**地区与语言**（让 Google、YouTube 等按指定地区显示）
 - **首页**：Metal 实时渲染的星球、行星环和弯曲的时空网格
 
 ## 构建
@@ -66,6 +118,7 @@ DEVELOPMENT_TEAM = XXXXXXXXXX
 ## 说明
 
 - 广告规则列表在运行时从各自官方地址下载，版权归原作者所有，仓库里只有一份自己写的少量内置规则（`Aether/AdBlock/aether-builtin.txt`）。
+- 选 ChatGPT 或 Gemini 翻译时，网页文字（包括图片里识别出的文字）会发送给对应服务，按各自的计费和隐私条款处理；系统翻译全程在本机完成。
 - 拦截通用链接（禁止跳转 App）用的是 WebKit 未公开的导航策略取值，自用没问题，上架 App Store 前需要评估。
 
 ## 许可证

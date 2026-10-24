@@ -15,9 +15,18 @@ struct AddressSuggestionsView: View {
     @ObservedObject private var history = HistoryStore.shared
     @ObservedObject private var favicons = FaviconStore.shared
     @State private var showAllFavorites = false
+    @State private var contentWidth: CGFloat = 0
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    /// iPad 上内容限制在这个宽度内居中（横屏一排约 10 个收藏）；地址输入框窄一些
+    static let maxContentWidth: CGFloat = 1000
+    static let maxInputWidth: CGFloat = 720
 
     private let favorites = AppLibrary.shared.allApps
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 4)
+    /// 收藏图标：手机 56pt 一排 4 个；宽屏放大一点，一排放得下几个就放几个
+    private var iconSize: CGFloat { sizeClass == .regular ? 64 : 56 }
+    private var columnCount: Int { max(4, Int((contentWidth + 8) / (iconSize + 20 + 8))) }
+    private var columns: [GridItem] { Array(repeating: GridItem(.flexible(), spacing: 8), count: columnCount) }
 
     private var query: String { model.query.trimmingCharacters(in: .whitespacesAndNewlines) }
 
@@ -34,11 +43,14 @@ struct AddressSuggestionsView: View {
                 if query.isEmpty, !favorites.isEmpty { favoritesSection }
                 if !historyItems.isEmpty { historySection }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 18)
+            .frame(maxWidth: Self.maxContentWidth)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width - 36 } action: { contentWidth = $0 }
             .padding(.top, 12)
             // 底部让出地址输入框
             .padding(.bottom, 90)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity)
         }
         .scrollDismissesKeyboard(.immediately)
         // 没有收藏和历史时也铺满，避免毛玻璃背景收缩成中间的窄条。
@@ -68,7 +80,7 @@ struct AddressSuggestionsView: View {
             HStack {
                 Text(L("收藏")).font(.title3.bold())
                 Spacer()
-                if favorites.count > 8 {
+                if favorites.count > columnCount * 2 {
                     Button(showAllFavorites ? L("收起") : L("显示全部")) {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showAllFavorites.toggle() }
                     }
@@ -76,15 +88,15 @@ struct AddressSuggestionsView: View {
                 }
             }
             LazyVGrid(columns: columns, spacing: 14) {
-                ForEach(showAllFavorites ? favorites : Array(favorites.prefix(8))) { app in
+                ForEach(showAllFavorites ? favorites : Array(favorites.prefix(columnCount * 2))) { app in
                     Button {
                         if let url = URL(string: app.url) { onOpen(url) }
                     } label: {
                         VStack(spacing: 6) {
                             Image(uiImage: AppIconStore.shared.image(for: app))
                                 .resizable()
-                                .frame(width: 56, height: 56)
-                                .clipShape(RoundedRectangle(cornerRadius: 56 * 0.225, style: .continuous))
+                                .frame(width: iconSize, height: iconSize)
+                                .clipShape(RoundedRectangle(cornerRadius: iconSize * 0.225, style: .continuous))
                                 .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
                             Text(app.title).font(.caption).lineLimit(1).foregroundStyle(.primary)
                         }
